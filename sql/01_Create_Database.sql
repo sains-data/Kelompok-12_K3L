@@ -1,19 +1,20 @@
+-- Create Database
 CREATE DATABASE K3L_DataMart
 ON PRIMARY
 (
-    NAME = 'K3L_DataMart_Data',
-    FILENAME = '/var/opt/mssql/data/K3L_DataMart_Data.mdf',
-    SIZE = 100MB,
-    MAXSIZE = 10GB,
-    FILEGROWTH = 50MB
+    NAME = N'K3L_DataMart_Data',
+    FILENAME = N'C:\K3L\K3L_DataMart_Data.mdf',
+    SIZE = 1GB,
+    MAXSIZE = UNLIMITED,
+    FILEGROWTH = 256MB
 )
 LOG ON
 (
-    NAME = 'K3L_DataMart_Log',
-    FILENAME = '/var/opt/mssql/data/K3L_DataMart_Log.ldf',
-    SIZE = 50MB,
-    MAXSIZE = 5GB,
-    FILEGROWTH = 25MB
+    NAME = N'K3L_DataMart_Log',
+    FILENAME = N'C:\K3L\K3L_DataMart_Log.ldf',
+    SIZE = 256MB,
+    MAXSIZE = 2GB,
+    FILEGROWTH = 64MB
 );
 GO
 
@@ -43,3 +44,4 @@ GO
 PRINT '';
 PRINT 'Database K3L_DataMart created successfully!';
 GO
+
