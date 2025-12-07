@@ -3,39 +3,34 @@
 
 ## 1. Daftar Sumber Data
 
-Berikut adalah identifikasi sumber data utama yang akan digunakan untuk mengisi data mart K3L.
+Data Mart K3L mengintegrasikan data dari berbagai sumber operasional yang masuk melalui proses Staging sebelum dimuat ke Data Mart.
 
-| Data Source | Tipe | Perkiraan Volume | Frekuensi Update | Kualitas Data | Catatan |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Sistem E-Reporting Insiden** | Database OLTP (SQL Server) | 100-200 insiden/tahun | Real-time | Cukup Baik | Sumber utama untuk `Fact_Insiden`. Perlu join untuk detail. |
-| **Checklist Inspeksi APAR** | Excel / CSV | ~50 file/bulan | Bulanan | Sedang | Data sering manual, perlu *cleansing* format tanggal & nama. |
-| **Checklist Inspeksi Hidran** | Excel / CSV | ~10 file/kuartal | Kuartalan | Sedang | Mirip dengan APAR, struktur file mungkin berbeda. |
-| **Logbook Limbah B3** | Excel / Manual | 1 file/minggu | Mingguan | Rendah | Sangat manual, risiko salah ketik tinggi. Perlu validasi. |
-| **Data Vendor Limbah** | PDF / Excel | 1 file/bulan | Bulanan | Baik | Data terstruktur dari vendor (pihak ketiga) untuk biaya. |
-| **Database SIM-Kepegawaian** | Database OLTP (SQL Server) | ~1.000+ pegawai | Harian | Tinggi | Digunakan untuk dimensi `Dim_Inspektur` dan `Dim_UnitKerja`. |
-| **Database SIM-Sarpras** | Database OLTP (SQL Server) | ~500+ ruangan | Sesuai Kebutuhan | Tinggi | Digunakan untuk data master `Dim_Lokasi` (Gedung, Ruangan). |
+| Data Source | Tipe | Entitas Terkait | Keterangan |
+| :--- | :--- | :--- | :--- |
+| **Sistem E-Reporting Insiden** | OLTP / Form Digital | `Fact_Insiden` | Sumber utama data kejadian kecelakaan, kebakaran, dan insiden lainnya. Mencakup detail korban dan dampak. |
+| **Checklist Inspeksi K3** | Excel / App Mobile | `Fact_Inspeksi` | Data hasil inspeksi rutin peralatan (APAR, Hidran) dan fasilitas. Mencatat jumlah item yang diperiksa dan temuan ketidaksesuaian. |
+| **Logbook Limbah** | Excel / Catatan Manual | `Fact_Limbah` | Pencatatan harian/mingguan volume limbah yang dihasilkan unit kerja sebelum diangkut vendor. |
+| **Sistem Kepegawaian (SIM-SDM)** | Database Master | `Dim_Petugas`, `Dim_UnitKerja` | Data referensi untuk struktur organisasi (Fakultas, Prodi, Unit) dan data personil K3L. |
+| **Sistem Sarpras (SIM-Aset)** | Database Master | `Dim_Lokasi`, `Dim_JenisPeralatan` | Data referensi gedung, ruangan, dan inventaris peralatan keselamatan. |
 
-## 2. Profiling & Analisis Data (Contoh)
+## 2. Alur Data (Data Flow)
 
-### Sumber: Checklist Inspeksi APAR (Excel)
+1.  **Source Systems** (Excel, OLTP) -> **Staging Area** (`stg.Insiden`, `stg.Inspeksi`, `stg.Limbah`).
+2.  **Staging Area** -> **Data Mart** (`Fact_Insiden`, `Fact_Inspeksi`, `Fact_Limbah`) via Stored Procedures (`usp_Master_ETL`).
+3.  **Data Mart** -> **Dashboard Views** (`vw_Insiden_Summary`, etc.) -> **Power BI**.
 
-* **Struktur:** 1 file Excel per gedung, 1 *sheet* per lantai, 1 baris per APAR.
-* **Kolom Kunci:** `ID_APAR`, `Lokasi`, `Tgl_Inspeksi`, `Kondisi_Tabung`, `Kondisi_Pin`, `Kondisi_Selang`, `Tekanan`, `Temuan`, `Nama_Inspektur`.
-* **Masalah Kualitas:**
-    * **Konsistensi:** `Tgl_Inspeksi` sering ditulis dalam format berbeda (DD/MM/YY, MM/DD/YYYY, Teks).
-    * **Akurasi:** `Nama_Inspektur` kadang typo atau disingkat (misal: "Budi S." vs "Budi Setiawan").
-    * **Kelengkapan:** Kolom `Temuan` sering kosong padahal kondisi "Tidak Baik".
-* **Rencana Transformasi (ETL):**
-    * Standardisasi format tanggal ke `YYYY-MM-DD`.
-    * Gunakan *Lookup Table* (dari `Dim_Inspektur`) untuk membersihkan nama inspektur.
-    * Buat aturan *derived column*: JIKA `Kondisi_Tabung` = 'Tidak Baik' MAKA `JumlahTemuan` = 1.
+## 3. Spesifikasi Data Staging (Current Implementation)
 
-### Sumber: Sistem E-Reporting Insiden (OLTP)
+Saat ini, data dimuat menggunakan skrip SQL (`Insert Data.sql`) yang mensimulasikan data dari sumber-sumber di atas.
 
-* **Struktur:** Tabel relasional (misal: `tbl_insiden`, `tbl_investigasi`, `tbl_korban`).
-* **Masalah Kualitas:**
-    * **NULL Values:** `Tingkat_Keparahan` kadang NULL dan baru diisi setelah investigasi selesai.
-    * **Kategorisasi:** `Jenis_Insiden` tidak konsisten (misal: "Kecelakaan" vs "Kecelakaan Kerja").
-* **Rencana Transformasi (ETL):**
-    * Gunakan `COALESCE` untuk mengisi nilai NULL dengan 'Belum Diinvestigasi'.
-    * Terapkan *mapping* untuk menstandardisasi `Jenis_Insiden` ke `Dim_JenisInsiden`.
+### a. Insiden (`stg.Insiden`)
+*   **Atribut:** Tanggal, Lokasi, UnitKerja, JenisInsiden, Severity, Petugas, JumlahKorban, HariKerjaHilang.
+*   **Frekuensi:** Harian (Transactional).
+
+### b. Inspeksi (`stg.Inspeksi`)
+*   **Atribut:** Tanggal, Lokasi, UnitKerja, Peralatan, Petugas, JumlahDiinspeksi, JumlahTidakSesuai.
+*   **Frekuensi:** Berkala (Sesuai jadwal inspeksi).
+
+### c. Limbah (`stg.Limbah`)
+*   **Atribut:** Tanggal, Lokasi, UnitKerja, JenisLimbah, Petugas, JumlahLimbah.
+*   **Frekuensi:** Harian/Mingguan.

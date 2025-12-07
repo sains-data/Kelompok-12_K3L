@@ -1,0 +1,36 @@
+Design Power BI Dashboards
+Dashboard 1: Executive Summary
+ 
+KPI Cards :
+- Total Insiden
+- Total Harian Kerja
+- Total Korban Insiden
+Line Chart : Total Insiden Selama 5 Tahun
+Bar Chart : Total Korban Berdasarkan Unit
+Donut Chart : Total Insiden Berdasarkan Nama
+Table : Tabel Ringkasan Kinerja K3L Tahunan
+Slicer : Tahun
+Data Source:
+vw_Executive_Summary_K3L, vw_Insiden_Summary
+
+Dashboard 2: Academic Performance
+
+Stacked Bar : Tingkat Kepatuhan Per Unit Kerja
+Matrix : Sebaran Tingkat Keparahan Per Unit Kerja
+Table : Tabel Unit Kerja dengan Kinerja Terbaik
+Gauge : Capaian Target Kinerja K3L Tahunan
+Slicer : Tahun
+
+Data Source:
+vw_Inspeksi_Summary, vw_Limbah_Summary, vw_Insiden_Summary
+
+Dashboard 3: Financial Analysis
+
+Area Chart : Tren Total Insiden
+Pie Chart : Proyeksi Insiden
+Waterfall : Dampak Insiden
+Line Chart : Proporsi Insiden per Unit
+Slicer : Tahun
+
+Data Source:
+vw_Insiden_Summary
