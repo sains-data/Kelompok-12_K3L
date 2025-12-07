@@ -41,6 +41,6 @@ Unit K3L bertanggung jawab atas pengelolaan aspek Kesehatan, Keselamatan Kerja, 
 - [Design Documents](docs/02-design/)
 
 ## Timeline
-- **Misi 1:** [2025-11-17]
-- **Misi 2:** [2025-11-24]
-- **Misi 3:** [2025-12-01]
+- **Misi 1:** 17 November 2025
+- **Misi 2:** 24 November 2025
+- **Misi 3:** 01 December 2025
